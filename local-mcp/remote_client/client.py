@@ -143,7 +143,7 @@ class RemoteClient:
         return await self._request(
             "POST",
             f"/v1/workspaces/{workspace_id}/run",
-            json=config.model_dump(),
+            json=self._execution_payload(config),
             headers=headers,
         )
 
@@ -152,7 +152,7 @@ class RemoteClient:
         return await self._request(
             "POST",
             f"/v1/workspaces/{workspace_id}/benchmark",
-            json=config.model_dump(),
+            json=self._execution_payload(config),
             headers=headers,
         )
 
@@ -166,12 +166,21 @@ class RemoteClient:
         return await self._request(
             "POST",
             f"/v1/workspaces/{workspace_id}/profile",
-            json=config.model_dump(),
+            json=self._execution_payload(config),
             headers=headers,
         )
 
     async def job(self, job_id: str) -> dict[str, Any]:
         return await self._request("GET", f"/v1/jobs/{job_id}")
+
+    @staticmethod
+    def _execution_payload(config: Any) -> dict[str, Any]:
+        """Omit an empty env field for compatibility with older remote agents."""
+
+        payload = config.model_dump()
+        if not payload.get("env"):
+            payload.pop("env", None)
+        return payload
 
     async def job_logs(self, job_id: str) -> dict[str, Any]:
         return await self._request("GET", f"/v1/jobs/{job_id}/logs")

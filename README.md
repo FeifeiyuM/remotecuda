@@ -242,7 +242,11 @@ cuda_run(workspace_id, {
   "executable": "release/cuda_hello",
   "args": [],
   "device_id": 0,
-  "timeout_seconds": 300
+  "timeout_seconds": 300,
+  "env": {
+    "RC_ENV_CUDA_LAUNCH_BLOCKING": "1",
+    "RC_ENV_OMP_NUM_THREADS": "4"
+  }
 })
 cuda_job_logs(job_id)
 cuda_benchmark(workspace_id, {
@@ -284,6 +288,10 @@ artifact_list(workspace_id)
 artifact_download(workspace_id, artifact_path)
 ```
 
+`env` 只在一次 RUN/BENCHMARK/PROFILE 子进程内生效，任务结束后丢弃。请求键必须使用固定前缀 `RC_ENV_`；Remote Agent 会在传给子进程前移除该前缀，例如 `RC_ENV_OMP_NUM_THREADS=4` 会变成 `OMP_NUM_THREADS=4`。结构化执行事件与任务结果只记录变量名，不主动记录值；程序自身输出的 stdout/stderr 仍按原有机制保留。
+
+`PATH`、`LD_PRELOAD`、`LD_LIBRARY_PATH`、`HOME`、`CUDA_VISIBLE_DEVICES` 和 Remote Agent 自身配置类变量始终禁止客户端覆盖。
+
 `examples/cuda-hello` 和 `examples/cuda-benchmark` 可作为首个同步项目。
 
 ## Executor 日志
@@ -301,6 +309,7 @@ Remote Agent 的 Build、CUDA Run/Benchmark/Profile 和子进程执行会同时�
 - 不提供任意 Shell 命令接口；服务端只构造受控参数数组。
 - 子进程不使用 `shell=True`。
 - 子进程使用最小环境变量，不继承 Agent Token 等服务端敏感配置。
+- RUN/BENCHMARK/PROFILE 支持一次性 `env` 覆盖，请求键必须使用 `RC_ENV_` 前缀，且移除前缀后的保留变量与进程加载变量不可覆盖。
 - 编译目标、CUDA 架构、可执行路径和参数均由 Pydantic/正则校验。
 - 同步与执行路径拒绝绝对路径、`..`、空路径和逃逸 Workspace 的符号链接。
 - 上传使用临时文件并校验 SHA256 后原子替换。
@@ -337,7 +346,7 @@ Remote Agent：
 python3 -m unittest discover -s tests -v
 ```
 
-当前测试覆盖 Registry、调度过滤、路径安全、Manifest 同步、真实进程执行、Benchmark 采样、NCU/Nsys 命令构造和任务重启恢复。
+当前测试覆盖 Registry、调度过滤、路径安全、Manifest 同步、真实进程执行、请求级环境变量前缀、Benchmark 采样、NCU/Nsys 命令构造和任务重启恢复。
 
 ## 目录
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Header, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from security import validate_environment_entries
 from services.artifact_manager import ArtifactManager
 from services.job_manager import JobManager
 from storage.database import Database
@@ -17,6 +18,7 @@ class ExecutionRequest(BaseModel):
     args: list[str] = Field(default_factory=list, max_length=128)
     device_id: int = Field(default=0, ge=0, le=1023)
     timeout_seconds: int = Field(default=600, ge=1, le=86_400)
+    env: dict[str, str] = Field(default_factory=dict, max_length=32)
 
     @field_validator("executable")
     @classmethod
@@ -25,6 +27,12 @@ class ExecutionRequest(BaseModel):
 
         if Path(value).is_absolute() or ".." in Path(value).parts:
             raise ValueError("executable must be relative to build directory")
+        return value
+
+    @field_validator("env")
+    @classmethod
+    def validate_env(cls, value: dict[str, str]) -> dict[str, str]:
+        validate_environment_entries(value)
         return value
 
 
@@ -87,7 +95,11 @@ class ProfilerRequest(ExecutionRequest):
         return self
 
 
-def create_router(jobs: JobManager, artifacts: ArtifactManager, database: Database) -> APIRouter:
+def create_router(
+    jobs: JobManager,
+    artifacts: ArtifactManager,
+    database: Database,
+) -> APIRouter:
     router = APIRouter(tags=["jobs"])
 
     @router.post("/v1/workspaces/{workspace_id}/run", status_code=202)

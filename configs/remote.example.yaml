@@ -20,3 +20,6 @@ max_running_jobs: 4
 max_build_parallel: 8
 default_timeout_seconds: 600
 allowed_origins: []
+# RUN/BENCHMARK/PROFILE request env keys use the fixed RC_ENV_ namespace.
+# Example: RC_ENV_CUDA_LAUNCH_BLOCKING=1 becomes CUDA_LAUNCH_BLOCKING=1
+# for that child process only. No per-variable whitelist is required.

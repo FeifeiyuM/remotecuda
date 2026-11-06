@@ -122,6 +122,8 @@ cmake --build build/<type> --parallel <n> [--target <target>]
 
 RUN 只允许执行当前 Workspace `build/` 内真实路径位于 Build Root 下的可执行文件。Benchmark 多次启动同一可执行文件，直接测量每次进程耗时，并并发采样 GPU 利用率/显存；没有采样时对应指标缺席，不做估算。
 
+RUN/BENCHMARK/PROFILE 可携带请求级 `env`。请求键必须使用 `RC_ENV_` 前缀；Remote Agent 校验并移除前缀后传给当次子进程，同时拒绝进程加载、路径选择、服务配置和 GPU 可见性相关保留变量。变量值任务结束即丢弃；结构化事件和结果只记录变量名，程序自身 stdout/stderr 仍按原规则保留。
+
 子进程运行在独立进程组中，使用最小环境变量，不继承 Agent Token；超时或取消时向整个进程组发送信号，避免编译工具的子进程残留。
 
 ### 2.6 任务状态

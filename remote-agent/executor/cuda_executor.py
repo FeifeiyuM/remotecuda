@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from typing import Any, Protocol
 
-from security import atomic_write, resolve_inside
+from security import EnvironmentPolicy, atomic_write, resolve_inside
 
 from .logging_utils import log_event
 from .process_runner import ProcessFailure, ProcessResult, ProcessRunner, ProcessTimeout
@@ -27,9 +27,14 @@ class GpuReader(Protocol):
 
 
 class CudaExecutor:
-    def __init__(self, runner: ProcessRunner, gpu_manager: GpuReader | None = None) -> None:
+    def __init__(
+        self,
+        runner: ProcessRunner,
+        gpu_manager: GpuReader | None = None,
+    ) -> None:
         self.runner = runner
         self.gpu_manager = gpu_manager
+        self.environment_policy = EnvironmentPolicy()
 
     @staticmethod
     def executable_path(workspace_root: Path, relative_executable: str) -> Path:
@@ -57,6 +62,8 @@ class CudaExecutor:
         log_path: Path,
     ) -> dict[str, Any]:
         started = time.monotonic()
+        custom_env = self.environment_policy.validate(config.get("env") or {})
+        environment = {**custom_env, "CUDA_VISIBLE_DEVICES": str(config.get("device_id", 0))}
         log_event(
             log_path,
             LOGGER,
@@ -68,6 +75,7 @@ class CudaExecutor:
             args=config.get("args", []),
             device_id=config.get("device_id", 0),
             timeout_seconds=timeout_seconds,
+            environment_keys=sorted(custom_env),
         )
         try:
             executable = self.executable_path(workspace_root, str(config.get("executable", "")))
@@ -80,7 +88,7 @@ class CudaExecutor:
                 command=[str(executable), *args],
                 cwd=workspace_root / "build",
                 timeout_seconds=timeout_seconds,
-                env={"CUDA_VISIBLE_DEVICES": str(device_id)},
+                env=environment,
                 log_path=log_path,
             )
             payload = {
@@ -128,6 +136,7 @@ class CudaExecutor:
         cwd: Path,
         timeout_seconds: float,
         device_id: int,
+        env: dict[str, str],
         log_path: Path,
     ) -> tuple[ProcessResult, list[dict[str, Any]]]:
         samples: list[dict[str, Any]] = []
@@ -174,7 +183,7 @@ class CudaExecutor:
                 command=command,
                 cwd=cwd,
                 timeout_seconds=timeout_seconds,
-                env={"CUDA_VISIBLE_DEVICES": str(device_id)},
+                env=env,
                 log_path=log_path,
             )
             return result, samples
@@ -212,6 +221,8 @@ class CudaExecutor:
         log_path: Path,
     ) -> dict[str, Any]:
         started = time.monotonic()
+        custom_env = self.environment_policy.validate(config.get("env") or {})
+        environment = {**custom_env, "CUDA_VISIBLE_DEVICES": str(config.get("device_id", 0))}
         warmup = int(config.get("warmup_iterations", 0))
         iterations = int(config.get("iterations", 1))
         benchmark_name = re.sub(
@@ -232,6 +243,7 @@ class CudaExecutor:
             warmup_iterations=warmup,
             device_id=config.get("device_id", 0),
             timeout_seconds=timeout_seconds,
+            environment_keys=sorted(custom_env),
         )
         try:
             executable = self.executable_path(workspace_root, str(config.get("executable", "")))
@@ -264,6 +276,7 @@ class CudaExecutor:
                     cwd=workspace_root / "build",
                     timeout_seconds=remaining,
                     device_id=device_id,
+                    env=environment,
                     log_path=log_path,
                 )
                 if label != "warmup":

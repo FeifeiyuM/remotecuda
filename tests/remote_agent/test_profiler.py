@@ -16,9 +16,11 @@ from executor import ProcessResult, ProcessRunner, ProfilerExecutor
 class FakeRunner:
     def __init__(self) -> None:
         self.commands: list[list[str]] = []
+        self.environments: list[dict[str, str]] = []
 
-    async def run(self, *, command, **_kwargs) -> ProcessResult:
+    async def run(self, *, command, **kwargs) -> ProcessResult:
         self.commands.append(command)
+        self.environments.append(dict(kwargs["env"]))
         if "ncu" in Path(command[0]).name:
             report = Path(command[command.index("--export") + 1])
         else:
@@ -113,6 +115,29 @@ class ProfilerTest(unittest.TestCase):
         self.assertIn("--sample", command)
         self.assertIn("none", command)
         self.assertNotIn("--target-processes", command)
+
+    def test_prefixed_environment_is_passed_to_profiler_process(self):
+        runner = FakeRunner()
+        executor = ProfilerExecutor(runner, self.ncu, self.nsys)
+        asyncio.run(
+            executor.profile(
+                job_id="profile-env",
+                workspace_root=self.workspace,
+                config={
+                    "profiler": "ncu",
+                    "executable": "cuda_app",
+                    "device_id": 4,
+                    "timeout_seconds": 30,
+                    "env": {"RC_ENV_CUSTOM_PROFILE_VALUE": "one-profile"},
+                },
+                timeout_seconds=30,
+                log_path=self.workspace / "logs" / "profile.log",
+            )
+        )
+        self.assertEqual(
+            runner.environments,
+            [{"CUSTOM_PROFILE_VALUE": "one-profile", "CUDA_VISIBLE_DEVICES": "4"}],
+        )
 
     def test_missing_tool_is_rejected(self):
         executor = ProfilerExecutor(ProcessRunner(), None, self.nsys)

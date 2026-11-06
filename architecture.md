@@ -860,9 +860,15 @@ cuda_clean(server_id, workspace_id)
     "10000"
   ],
   "device_id": 0,
-  "timeout_seconds": 300
+  "timeout_seconds": 300,
+  "env": {
+    "RC_ENV_CUDA_LAUNCH_BLOCKING": "1",
+    "RC_ENV_OMP_NUM_THREADS": "4"
+  }
 }
 ```
+
+`env` 是请求级临时环境。请求键必须使用 `RC_ENV_` 前缀；Remote Agent 移除前缀后传给当次子进程，例如 `RC_ENV_OMP_NUM_THREADS` 变成 `OMP_NUM_THREADS`。`CUDA_VISIBLE_DEVICES` 始终由服务端根据 `device_id` 最后写入。环境变量值不写入结构化日志、任务结果或 SQLite 元数据；程序自身 stdout/stderr 仍按原规则保留。
 
 ## 10.2 执行流程
 
@@ -908,6 +914,8 @@ Agent 调用 cuda_run
 - 真实路径是否位于 Build Directory 内。
 - 参数类型是否合法。
 - 执行是否超过超时时间。
+- 环境变量请求名是否使用 `RC_ENV_` 前缀，且移除前缀后是否合法。
+- 环境变量是否属于保留的进程加载、路径选择、服务配置或 GPU 可见性变量。
 
 禁止通过接口传入任意 Shell 命令。
 

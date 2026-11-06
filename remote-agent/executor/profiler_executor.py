@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from security import atomic_write
+from security import EnvironmentPolicy, atomic_write
 
 from .cuda_executor import CudaExecutor
 from .logging_utils import log_event
@@ -31,6 +31,7 @@ class ProfilerExecutor:
         self.runner = runner
         self.ncu_path = Path(ncu_path) if ncu_path is not None else None
         self.nsys_path = Path(nsys_path) if nsys_path is not None else None
+        self.environment_policy = EnvironmentPolicy()
 
     @staticmethod
     def require_tool(path: str | Path | None, name: str) -> Path:
@@ -143,6 +144,8 @@ class ProfilerExecutor:
         started = time.monotonic()
         profiler = str(config.get("profiler", "")).lower()
         profile_name = self._safe_name(str(config.get("profile_name", "profile")))
+        custom_env = self.environment_policy.validate(config.get("env") or {})
+        environment = {**custom_env, "CUDA_VISIBLE_DEVICES": str(config.get("device_id", 0))}
         log_event(
             log_path,
             LOGGER,
@@ -154,6 +157,7 @@ class ProfilerExecutor:
             workspace_root=workspace_root,
             executable=config.get("executable"),
             timeout_seconds=timeout_seconds,
+            environment_keys=sorted(custom_env),
         )
         try:
             if profiler not in {"ncu", "nsys"}:
@@ -205,7 +209,7 @@ class ProfilerExecutor:
                 command=command,
                 cwd=workspace_root / "build",
                 timeout_seconds=timeout_seconds,
-                env={"CUDA_VISIBLE_DEVICES": str(config.get("device_id", 0))},
+                env=environment,
                 log_path=log_path,
             )
             report = self._resolve_report(report_path, profiler)

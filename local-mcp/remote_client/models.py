@@ -74,12 +74,21 @@ class ExecutionConfig(BaseModel):
     args: list[str] = Field(default_factory=list, max_length=128)
     device_id: int = Field(default=0, ge=0, le=1023)
     timeout_seconds: int = Field(default=300, ge=1, le=86_400)
+    env: dict[str, str] = Field(default_factory=dict, max_length=32)
 
     @field_validator("executable")
     @classmethod
     def validate_executable(cls, value: str) -> str:
         if Path(value).is_absolute() or ".." in PurePosixPath(value).parts:
             raise ValueError("executable must be relative to the workspace build directory")
+        return value
+
+    @field_validator("env")
+    @classmethod
+    def validate_env(cls, value: dict[str, str]) -> dict[str, str]:
+        from security_paths import validate_environment_entries
+
+        validate_environment_entries(value)
         return value
 
 
