@@ -1,0 +1,22 @@
+host: 127.0.0.1
+port: 8025
+# Required absolute executable paths on the GPU server.
+cmake_path: /usr/bin/cmake
+nvcc_path: /usr/local/cuda/bin/nvcc
+# Optional Nsight profiling tools. Remove them on servers without Nsight.
+ncu_path: /usr/local/cuda/bin/ncu
+nsys_path: /usr/local/cuda/bin/nsys
+# Set auth_enabled to false only for an isolated loopback development setup.
+auth_enabled: true
+# The Agent accepts this token as its HTTP Bearer token. Environment variable
+# REMOTE_CUDA_AGENT_TOKEN overrides this value when it is set.
+token: CUDA_SERVER_3060_TOKEN
+workspace_root: runtime/workspaces
+database_path: runtime/agent.db
+max_upload_bytes: 536870912
+max_artifact_bytes: 1073741824
+max_output_chars: 1000000
+max_running_jobs: 4
+max_build_parallel: 8
+default_timeout_seconds: 600
+allowed_origins: []

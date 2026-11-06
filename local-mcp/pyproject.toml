@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "remote-cuda-mcp"
+version = "2.0.0"
+description = "Local MCP gateway for multi-server remote CUDA development"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "fastmcp>=0.4.0",
+  "anyio>=4.0",
+  "httpx>=0.27",
+  "pydantic>=2.7",
+  "PyYAML>=6.0",
+]
+
+[tool.setuptools]
+py-modules = ["server", "security_paths"]
+packages = [
+  "registry",
+  "remote_client",
+  "scheduler",
+  "monitor",
+  "services",
+  "tools",
+]

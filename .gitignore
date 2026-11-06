@@ -1,0 +1,17 @@
+.git/
+.venv/
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+*.db
+*.log
+local-mcp/runtime/
+local-mcp/local.yaml
+remote-agent/remote.yaml
+.codex/
+.agent/
+remote-agent/runtime/
+.remote-cuda-artifacts/

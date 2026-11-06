@@ -1,0 +1,19 @@
+servers:
+  - server_id: gpu-3060
+    name: RTX 3060 Development Server
+    endpoint: http://192.168.1.101:8025
+    auth_enabled: true
+    token_env: CUDA_SERVER_3060_TOKEN
+    enabled: true
+    priority: 10
+    tags: [development, cuda]
+    timeout_seconds: 30
+
+  # - server_id: gpu-4090
+  #   name: RTX 4090 Benchmark Server
+  #   endpoint: http://192.168.1.102:8443
+  #   token_env: CUDA_SERVER_4090_TOKEN
+  #   enabled: true
+  #   priority: 20
+  #   tags: [benchmark, cuda]
+  #   timeout_seconds: 60
